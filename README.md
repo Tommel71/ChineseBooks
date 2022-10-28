@@ -14,3 +14,13 @@ Here is one example of how to use it for the input file `xiaowangzi.txt` and the
 ```
 python enrich.py xiaowangzi.txt outputs/xiaowangzi.docx
 ```
+
+### Example
+
+Here is an example of input and output:
+
+Input: 
+![](assets/input.PNG)
+
+Output:
+![](assets/output.PNG)
