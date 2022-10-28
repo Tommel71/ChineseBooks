@@ -1,0 +1,8 @@
+numpy==1.23.4
+pinyin==0.4.0
+requests==2.28.1
+cihai==0.18.2
+tqdm==4.64.1
+zhon==1.1.5
+cedict-utils==0.0.13
+python-docx==0.8.11
