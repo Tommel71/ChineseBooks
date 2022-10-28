@@ -12,7 +12,7 @@ import docx
 from docx import Document
 from docx.shared import RGBColor, Mm, Pt
 from docx.enum.text import WD_BREAK
-
+import typer
 
 
 hyperlink_base = "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
@@ -190,11 +190,18 @@ def add_hyperlink(paragraph, text, url, color, font_name, size):
     return hyperlink
 
 
-def enrich_txt(path, use_notranslate_file=False):
+def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=False) -> None:
+    """
+    Enriches a txt file with pinyin, translation and word for word translation.
+    :param input_path: path to input txt file
+    :param output_path: path to output docx file
+    :param use_notranslate_file: if True, uses notranslate.txt to not translate certain words
+    :return: None
+
+    """
 
     # load text file from data
-    filename = "xwz.txt"
-    with open(path, "r", encoding="UTF-8") as f:
+    with open(input_path, "r", encoding="UTF-8") as f:
         data = f.read()
         data = data.replace("。”", "”。")
         data = data.split("。")
@@ -205,7 +212,8 @@ def enrich_txt(path, use_notranslate_file=False):
         with open("notranslate.txt", "r", encoding="UTF-8") as f:
             notranslate = f.read().splitlines()
             notranslate = set(notranslate)
-
+    else:
+        notranslate = set()
 
 
     if not c.unihan.is_bootstrapped:  # download and install Unihan to db
@@ -298,8 +306,9 @@ def enrich_txt(path, use_notranslate_file=False):
                 p.add_run("\n")
             line_i+=1
 
-    document.save(f'output/{filename}.docx')
+    document.save(output_path)
 
 
 if __name__ == "__main__":
-    enrich_txt("data/xwz.txt")
+    typer.run(enrich_txt)
+    #enrich_txt("data/xwz.txt", "output/xwz.docx", use_notranslate_file=True)

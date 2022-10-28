@@ -6,3 +6,4 @@ tqdm==4.64.1
 zhon==1.1.5
 cedict-utils==0.0.13
 python-docx==0.8.11
+typer==0.6.1
