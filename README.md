@@ -1,6 +1,13 @@
+
+<div align="center">
+
 # Chinese Books
 
-![](assets/cover.jfif)
+<img src="assets/cover.jfif" alt="icon" width="260"/>
+
+
+</div>
+
 
 ### Enrich Chinese texts
 
