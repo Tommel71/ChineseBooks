@@ -13,6 +13,7 @@ from docx import Document
 from docx.shared import RGBColor, Mm, Pt
 from docx.enum.text import WD_BREAK
 import typer
+import pynlpir
 
 
 hyperlink_base = "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
@@ -159,7 +160,7 @@ section.page_width = Mm(210 * 3)
 def preprocess(line):
     for key, value in replace_dict.items():
         line = line.replace(key, value)
-    return line
+    return line + "."
 
 
 def add_hyperlink(paragraph, text, url, color, font_name, size):
@@ -255,7 +256,7 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=False)
         wfw_string, pad_wfw = [], []
         py_string, pad_py = [], []
         char_string, pad_char = [], []
-        import pynlpir
+
 
         pynlpir.open()
 
@@ -280,12 +281,12 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=False)
 
         c_l, c_r = 0, 0
         chunks = []
-        while c_l < len(char_string) -1:
+        while c_l < len(char_string):
             sizes = np.array(sizes)
             cumsum = sizes[c_r:].cumsum()
             # get last value where cumsum is less than 2500
 
-            c_r = c_l + np.where(cumsum < 2500)[0][-1]
+            c_r = c_l + np.where(cumsum < 2500)[0][-1] + 1
             chunk = wfw_string[c_l:c_r], pad_wfw[c_l:c_r], py_string[c_l:c_r], pad_py[c_l:c_r], char_string[c_l:c_r], pad_char[c_l:c_r]
             chunks.append(chunk)
             c_l = c_r
