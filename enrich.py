@@ -5,6 +5,7 @@ from cihai.core import Cihai
 import re
 import json
 from tqdm import tqdm
+import os
 from cedict_utils.cedict import CedictParser
 import zhon
 import zhon.cedict
@@ -14,6 +15,7 @@ from docx.shared import RGBColor, Mm, Pt
 from docx.enum.text import WD_BREAK
 import typer
 import pynlpir
+from docx2pdf import convert
 
 
 hyperlink_base = "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
@@ -65,7 +67,7 @@ replace_dict = {
 parser = CedictParser()
 entries = parser.parse()
 dictionary = {}
-for e in entries:
+for e in entries[::-1]:
     dictionary[e.simplified] = e.meanings[0]
 
 c = Cihai()
@@ -103,7 +105,21 @@ def word_for_word(x, notranslate=False):
         # dont translate some words
 
         # get first few full words that are shorter than 10 together
-        splits = dictionary[x].split(" ")
+        if x not in dictionary:
+            trans = translation(x).text
+        elif dictionary[x][:10] == "variant of":
+            trans = translation(x).text
+        elif dictionary[x][:7] == "surname":
+            trans = translation(x).text
+        else:
+            trans = dictionary[x]
+
+        if trans[:6] == "to be ":
+            trans = trans[6:]
+        elif trans[:3] == "to ":
+            trans = trans[3:]
+
+        splits = trans.split(" ")
         old_l = splits[0]
         for word in splits[1:]:
 
@@ -191,7 +207,7 @@ def add_hyperlink(paragraph, text, url, color, font_name, size):
     return hyperlink
 
 
-def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=False) -> None:
+def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True) -> None:
     """
     Enriches a txt file with pinyin, translation and word for word translation.
     :param input_path: path to input txt file
@@ -308,8 +324,9 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=False)
             line_i+=1
 
     document.save(output_path)
+    convert(output_path, os.path.abspath(output_path.replace(".docx", ".pdf")))
 
 
 if __name__ == "__main__":
     typer.run(enrich_txt)
-    #enrich_txt("data/xwz.txt", "output/xwz.docx", use_notranslate_file=True)
+    #enrich_txt("input.txt", "output.docx", use_notranslate_file=True)
