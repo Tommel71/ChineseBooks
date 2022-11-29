@@ -1,0 +1,8 @@
+*.pyc
+*.swp
+*~
+*.xml
+*.txt
+*.json
+.idea/
+Pipfile

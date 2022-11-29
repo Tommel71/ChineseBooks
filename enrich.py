@@ -16,21 +16,34 @@ from docx.enum.text import WD_BREAK
 import typer
 import pynlpir
 from docx2pdf import convert
-import jieba
-import epitran
+#import jieba
+#import epitran
+from PETRUS import use_petrus
 
 language = "br"
 
-epi = epitran.Epitran('por-Latn')
-epi.transliterate("bom dia")
+#epi = epitran.Epitran('por-Latn')
+#epi.transliterate("bom dia")
 
-phonetic_fs = {  "br": (lambda x: "todo")
-               , "zh": (lambda x: pinyin.get(x))}
+# phonetics mapping thanks to http://www.nilc.icmc.usp.br/aeiouado/
+# read csv and create dictionary
+br_dict = {}
+with open("phonetics_mappings/br.csv", "r", encoding="utf8") as f:
+    lines = f.readlines()
+    lines = [x.strip() for x in lines]
+    lines = [x.split("\t") for x in lines]
+
+    for line in lines:
+        br_dict[line[0]] = line[1]
+
+
+phonetic_fs = {  "br": lambda x: use_petrus.get_phonetics(x) #br_dict.get(x.strip().upper(), use_petrus.get_phonetics(x.strip()))
+               , "zh": lambda x: pinyin.get(x)}
 
 links_chinese = {"hyperlink_base": "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
                  , "google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q="
                  }
-links_portuguese = {"hyperlink_base": "https://www.dicio.com.br/"
+links_portuguese = {"hyperlink_base": "https://www.collinsdictionary.com/dictionary/english-portuguese/"
                     , "google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q="
                     }
 
@@ -42,8 +55,10 @@ class Translator:
     def __init__(self, language):
         self.language = language
 
-    def get_phonetic(self, text):
+    def get_phonetics(self, text):
         ret = phonetic_fs[self.language](text)
+        # remove brackets
+        ret = re.sub(r"\[.*?\]", "", ret)
 
         return Character(ret, pinyin_size)
 
@@ -327,7 +342,7 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
         for token, word_type in tokenized:
 
             wfw = word_for_word(token, notranslate)
-            py = translator.get_phonetic(token)
+            py = translator.get_phonetics(token)
             token = Character(token, base_size)
             token.set_color(color_coding.get(word_type, RGBColor(0, 0, 0)))
             size = max(wfw.len(), py.len(), token.len())
