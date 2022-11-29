@@ -9,3 +9,5 @@ python-docx==0.8.11
 typer==0.6.1
 pyNLPIR==0.6.0
 docx2pdf==0.1.8
+pypiwin32==225
+jieba==0.42.1
