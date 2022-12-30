@@ -99,15 +99,33 @@ translator = Translator(language)
 
 
 debug = False
-base_size = 40
-pinyin_size = base_size / 2
-word_for_word_size = base_size / 4
-translation_size = base_size / 2
-font_name = "Courier New"
-chin = "MS Mincho"
-ratio_lucida_to_mincho = 50 / 30
-space_size = 1
-lines_per_page = 14
+
+# todo make this more beautiful and less hacky
+if language == "br":
+    base_size = 40
+    pinyin_size = base_size / 2
+    word_for_word_size = base_size / 4
+    translation_size = base_size / 2
+    font_name = "Courier New"
+    chin = "MS Mincho"
+    ratio_lucida_to_mincho = 50 / 30
+    space_size = 1
+    lines_per_page = 14
+    sentence_splitter = "。"
+
+
+if language == "br":
+    base_size = 40
+    pinyin_size = base_size / 2
+    word_for_word_size = base_size / 4
+    translation_size = base_size / 2
+    font_name = "Consolas"
+    chin = "Consolas"
+    ratio_lucida_to_mincho = 1/1
+    space_size = 1
+    lines_per_page = 14
+    sentence_splitter = ". "
+
 
 color_coding = {
     "noun": RGBColor(17, 138, 178),  # blue
@@ -285,7 +303,7 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
     with open(input_path, "r", encoding="UTF-8") as f:
         data = f.read()
         data = data.replace("。”", "”。")
-        data = data.split("。")
+        data = data.split(sentence_splitter)
 
 
     # load list of words that should not be translated
@@ -390,4 +408,4 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
 
 if __name__ == "__main__":
     #typer.run(enrich_txt)
-    enrich_txt("input_pt.txt", "output_pt.docx", use_notranslate_file=True)
+    enrich_txt("data/little_prince_pt.txt", "output_pt.docx", use_notranslate_file=True)
