@@ -11,6 +11,8 @@ import os
 import codecs
 def get_phonetics(word):
 
+    if word == " ": return " "
+
     try:
 
         # Get input word

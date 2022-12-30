@@ -123,7 +123,7 @@ if language == "br":
     chin = "Consolas"
     ratio_lucida_to_mincho = 1/1
     space_size = 1
-    lines_per_page = 14
+    lines_per_page = 17
     sentence_splitter = ". "
 
 
@@ -156,7 +156,8 @@ replace_dict = {
     "；": ";",
     "？": "?",
     "！": "!",
-    "\n": " "
+    "\n": " ",
+    "\t": " ",
 }
 
 
@@ -345,7 +346,7 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
                 run.font.name = font_name
 
     line_i = 1
-    for line in tqdm(data):
+    for line in tqdm(data[:20]): # todo remove [:20]
         line = preprocess(line)
         p = document.add_paragraph("")
         run = p.add_run(translator.translation(line).text + "\n")
