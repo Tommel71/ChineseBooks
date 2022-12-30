@@ -390,4 +390,4 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
 
 if __name__ == "__main__":
     #typer.run(enrich_txt)
-    enrich_txt("input.txt", "output.docx", use_notranslate_file=True)
+    enrich_txt("input_pt.txt", "output_pt.docx", use_notranslate_file=True)
