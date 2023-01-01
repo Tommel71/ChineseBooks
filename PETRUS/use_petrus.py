@@ -11,7 +11,9 @@ import os
 import codecs
 def get_phonetics(word):
 
-    if word == " ": return " "
+    # is the word just whitespace?
+    if word.isspace():
+        return word
 
     try:
 

@@ -17,16 +17,14 @@ import typer
 import pynlpir
 from docx2pdf import convert
 #import jieba
-#import epitran
+import epitran
 from PETRUS import use_petrus
+
+epi_ger = epitran.Epitran('deu-Latn')
+
 
 language = "br"
 
-#epi = epitran.Epitran('por-Latn')
-#epi.transliterate("bom dia")
-
-# phonetics mapping thanks to http://www.nilc.icmc.usp.br/aeiouado/
-# read csv and create dictionary
 br_dict = {}
 with open("phonetics_mappings/br.csv", "r", encoding="utf8") as f:
     lines = f.readlines()
@@ -37,39 +35,73 @@ with open("phonetics_mappings/br.csv", "r", encoding="utf8") as f:
         br_dict[line[0]] = line[1]
 
 
-phonetic_fs = {  "br": lambda x: use_petrus.get_phonetics(x) #br_dict.get(x.strip().upper(), use_petrus.get_phonetics(x.strip()))
-               , "zh": lambda x: pinyin.get(x)}
+phonetic_fs = {"br": lambda x: use_petrus.get_phonetics(x) #br_dict.get(x.strip().upper(), use_petrus.get_phonetics(x.strip()))
+               ,"zh": lambda x: pinyin.get(x)
+               ,"de": lambda x: epi_ger.transliterate(x)}
 
-links_chinese = {"hyperlink_base": "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
-                 , "google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q="
+links_zh = {"hyperlink_base": "https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb="
+                 ,"google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q="
                  }
-links_portuguese = {"hyperlink_base": "https://www.collinsdictionary.com/dictionary/english-portuguese/"
-                    , "google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q="
+links_pt = {"hyperlink_base": "https://www.collinsdictionary.com/dictionary/english-portuguese/"
+                    ,"google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q="
+                    }
+links_de = {"hyperlink_base": "https://www.collinsdictionary.com/dictionary/english-german/"
+                    ,"google_translate": "https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=en&dt=t&q="
                     }
 
-links_all = {"zh": links_chinese, "br": links_portuguese}
-links=links_all[language]
+print_settings_zh = {"font1" : "Courier New"
+                    ,"font2" : "MS Mincho"  # Never used
+                    ,"ratio_fonts_1by2" : 50 / 30
+                    ,"space_size" : 1
+                    ,"lines_per_page" : 14
+                    ,"sentence_splitter" : "。"
+                    ,"line_length" : 2500
+                     }
+
+print_settings_pt = {"font1" : "Consolas"
+                    ,"font2" : "Consolas"  # Never used
+                    ,"ratio_fonts_1by2" : 1 / 1
+                    ,"space_size" : 1
+                    ,"lines_per_page" : 20
+                    ,"sentence_splitter" : ". "
+                    ,"line_length" : 2500
+                     }
+
+print_settings_de = print_settings_pt
+
+links_all = {"zh": links_zh, "br": links_pt, "de": links_de}
+print_settings_all = {"zh": print_settings_zh, "br": print_settings_pt, "de": print_settings_de}
+
+links = links_all[language]
+print_settings = print_settings_all[language]
+font1 = print_settings["font1"]
+font2 = print_settings["font2"]
+ratio_fonts_1by2 = print_settings["ratio_fonts_1by2"]
+space_size = print_settings["space_size"]
+lines_per_page = print_settings["lines_per_page"]
+sentence_splitter = print_settings["sentence_splitter"]
+line_length = print_settings["line_length"]
 
 class Translator:
 
     def __init__(self, language):
         self.language = language
 
-    def get_phonetics(self, text):
+    def get_phonetics(self, text, left_space=0):
         ret = phonetic_fs[self.language](text)
         # remove brackets
         ret = re.sub(r"\[.*?\]", "", ret)
 
-        return Character(ret, pinyin_size)
+        return Character(ret, pinyin_size, left_space=left_space)
 
-    def translation(self, x):
+    def translation(self, x, left_space=0):
         # translate from chinese to english using a free translation service
         url = links["google_translate"] + x
         response = requests.get(url)
         if response.status_code != 200:
             raise Exception("ERROR: API request unsuccessful.")
         ret = json.loads(response.content.decode("utf-8"))[0][0][0]
-        return Character(ret, translation_size)
+        return Character(ret, translation_size, left_space=left_space)
 
 
     def tokenize(self, line, engine):
@@ -101,30 +133,12 @@ translator = Translator(language)
 debug = False
 
 # todo make this more beautiful and less hacky
-if language == "br":
-    base_size = 40
-    pinyin_size = base_size / 2
-    word_for_word_size = base_size / 4
-    translation_size = base_size / 2
-    font_name = "Courier New"
-    chin = "MS Mincho"
-    ratio_lucida_to_mincho = 50 / 30
-    space_size = 1
-    lines_per_page = 14
-    sentence_splitter = "。"
 
+base_size = 40
+pinyin_size = base_size / 2
+word_for_word_size = base_size / 4
+translation_size = base_size / 2
 
-if language == "br":
-    base_size = 40
-    pinyin_size = base_size / 2
-    word_for_word_size = base_size / 4
-    translation_size = base_size / 2
-    font_name = "Consolas"
-    chin = "Consolas"
-    ratio_lucida_to_mincho = 1/1
-    space_size = 1
-    lines_per_page = 17
-    sentence_splitter = ". "
 
 
 color_coding = {
@@ -173,7 +187,7 @@ c = Cihai()
 
 class Character:
 
-    def __init__(self, text, size):
+    def __init__(self, text, size, left_space=0):
         self.text = text
         self.size = size
         # check if character is chinese
@@ -181,21 +195,29 @@ class Character:
         simplified = re.findall('[{}]'.format(zhon.cedict.simplified), text)
         self.chinese = len(punctuation + simplified) > 0
         self.color = RGBColor(0, 0, 0)  # black
+        self.left_space = left_space
 
     def len(self):
-        len_ = len(self.text) * self.size
+        # replace characters with tilde with their normal counterpart, because python len() counts tilde chars as 2
+        text = self.text
+        if language == "br":
+            text = text.replace("̃", "") # this looks weird but there is a tiny  ̃ character in the first string
+            text = text.replace("͂", "")
+
+
+        len_ = len(text) * self.size
         if not self.chinese:
             return len_
         else:
-            return len_ * ratio_lucida_to_mincho
+            return len_ * ratio_fonts
 
     def set_color(self, color):
         self.color = color
 
 
-def word_for_word(x, notranslate=False):
+def word_for_word(x, notranslate=False, left_space=0):
     if x in notranslate:
-        return Character("", word_for_word_size)
+        return Character("", word_for_word_size, left_space=left_space)
 
     try:
         if x not in dictionary:
@@ -233,7 +255,7 @@ def word_for_word(x, notranslate=False):
     except:
         ret = ""
 
-    return Character(ret, word_for_word_size)
+    return Character(ret, word_for_word_size, left_space=left_space)
 
 
 
@@ -260,7 +282,7 @@ def preprocess(line):
     return line + "."
 
 
-def add_hyperlink(paragraph, text, url, color, font_name, size):
+def add_hyperlink(paragraph, text, url, color, font1, size):
     # This gets access to the document.xml.rels file and gets a new relation id value
     part = paragraph.part
     r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
@@ -282,7 +304,7 @@ def add_hyperlink(paragraph, text, url, color, font_name, size):
     r = paragraph.add_run()
     r._r.append(hyperlink)
     r.font.color.rgb = color
-    r.font.name = font_name
+    r.font.name = font1
     r.font.size = size
 
     return hyperlink
@@ -322,31 +344,39 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
     def display_padded_text(text_list, padding, add_dict_link=False):
         for i in range(len(text_list)):
 
+
+            if text_list[i].left_space:
+                run = p.add_run(" " * text_list[i].left_space)
+                run.font.size = Pt(base_size)
+                run.font.name = font1
+
             pad_left, pad_right = padding[i]
             run = p.add_run(pad_left)
             run.font.size = Pt(space_size)
-            run.font.name = font_name
+            run.font.name = font1
+
+
             # add hyperlink
             if add_dict_link:
                 url = links["hyperlink_base"] + text_list[i].text
-                add_hyperlink(p, text_list[i].text, url, text_list[i].color, font_name, Pt(text_list[i].size))
+                add_hyperlink(p, text_list[i].text, url, text_list[i].color, font1, Pt(text_list[i].size))
             else:
                 run = p.add_run(text_list[i].text)
                 run.font.size = Pt(text_list[i].size)
-                run.font.name = font_name
+                run.font.name = font1
                 run.font.color.rgb = text_list[i].color
 
             run = p.add_run(pad_right)
             run.font.size = Pt(space_size)
-            run.font.name = font_name
+            run.font.name = font1
 
             if debug:
                 run = p.add_run("|")
                 run.font.size = Pt(15)
-                run.font.name = font_name
+                run.font.name = font1
 
     line_i = 1
-    for line in tqdm(data[:20]): # todo remove [:20]
+    for line in tqdm(data):
         line = preprocess(line)
         p = document.add_paragraph("")
         run = p.add_run(translator.translation(line).text + "\n")
@@ -359,13 +389,17 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
         tokenized = translator.tokenize(line, engine)
         sizes = []
         for token, word_type in tokenized:
+            left_space = 0
+            if token[0] == " ":
+                token = token[1:]
+                left_space = 1
 
-            wfw = word_for_word(token, notranslate)
-            py = translator.get_phonetics(token)
-            token = Character(token, base_size)
+            wfw = word_for_word(token, notranslate, left_space=left_space)
+            py = translator.get_phonetics(token, left_space=left_space)
+            token = Character(token, base_size, left_space=left_space)
             token.set_color(color_coding.get(word_type, RGBColor(0, 0, 0)))
             size = max(wfw.len(), py.len(), token.len())
-            sizes.append(size)
+            sizes.append(size + left_space*base_size)
             pad_wfw.append(pad(wfw, size))
             pad_py.append(pad(py, size))
             pad_char.append(pad(token, size))
@@ -380,9 +414,8 @@ def enrich_txt(input_path:str, output_path:str, use_notranslate_file:bool=True, 
         while c_l < len(char_string):
             sizes = np.array(sizes)
             cumsum = sizes[c_r:].cumsum()
-            # get last value where cumsum is less than 2500
 
-            c_r = c_l + np.where(cumsum < 2500)[0][-1] + 1
+            c_r = c_l + np.where(cumsum < line_length)[0][-1] + 1
             chunk = wfw_string[c_l:c_r], pad_wfw[c_l:c_r], py_string[c_l:c_r], pad_py[c_l:c_r], char_string[c_l:c_r], pad_char[c_l:c_r]
             chunks.append(chunk)
             c_l = c_r
